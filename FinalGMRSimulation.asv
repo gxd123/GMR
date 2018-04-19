@@ -125,7 +125,7 @@ uryy = diag(sparse(uryy));
 % BUILD DERIVATE MATRICES
 k0 = 2*pi/lam0;
 ny = ny2 - ny1 + 1;
-[DEX,DEY,DHX,DHY] = yeeder([1 ny],k0*[dx dy],[0 0 0 0]);
+[DEX,DEY,DHX,DHY] = yeeder2d([1 ny],k0*[dx dy],[0 0 0 0]);
 
 % BUILD EIGEN-VALUE PROBLEM
 A = - (DHY/urxx*DEY + erzz);
@@ -136,46 +136,80 @@ B = inv(uryy);
 [V,D] = eig(full(A),full(B));
 D = diag(D);
 
+
 % IDENTIFY FUNDAMENTAL MODE
+
 Ez0 = V(:,1);
+
 neff = sqrt(-D(1));
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% FDFD ANALYSIS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % BUILD DERIVATE MATRICES
-[DEX,DEY,DHX,DHY] = yeeder([Nx Ny],k0*[dx dy],[0 0 0 0]);
+
+[DEX,DEY,DHX,DHY] = yeeder2d([Nx Ny],k0*[dx dy],[0 0 0 0]);
+
 
 % DIAGONALIZE MATERIALS
+
 ERxx = diag(sparse(ERxx(:)));
+
 ERyy = diag(sparse(ERyy(:)));
+
 ERzz = diag(sparse(ERzz(:)));
 
 URxx = diag(sparse(URxx(:)));
+
 URyy = diag(sparse(URyy(:)));
+
 URzz = diag(sparse(URzz(:)));
 
+
 % BUILD WAVE MATRIX
+
 A = DHX/URyy*DEX + DHY/URxx*DEY + ERzz;
 
+
 % SOURCE FIELD
+
 fsrc = zeros(Nx,Ny);
+
 for nx = 1 : Nx
+    
     fsrc(nx,ny1:ny2) = Ez0*exp(1i*k0*neff*nx*dx);
+    
 end
 
+
 % Q
+
 Q = zeros(Nx,Ny);
+
 Q(1:nxs,:) = 1;
+
 Q = diag(sparse(Q(:)));
 
+
 % SOURCE VECTOR
+
 b = (Q*A - A*Q)*fsrc(:);
 
+
 % CALCULATE FIELD
+
 f = A\b;
+
 f = reshape(f,Nx,Ny);
+
+
 imagesc(xa,ya,real(f)');
+
 axis equal tight;
+
 colorbar;
