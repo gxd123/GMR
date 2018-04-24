@@ -171,7 +171,7 @@ b = (Q*A - A*Q)*fsrc(:);
 f = A\b;
 f = reshape(f,Nx,Ny);
 
-
+figure('color','w');
 imagesc(xa,ya,real(f)');
 axis equal tight;
 colorbar;
