@@ -127,9 +127,13 @@ ny1 = ny + ceil(T/dx2) - 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % INITIALIZE AUXILIAY ARRAYS
-REF = zeros(length(lam0));
-TRN = zeros(length(lam0));
-CON = zeros(length(lam0));
+REF = zeros(1,NLAM);
+TRN = zeros(1,NLAM);
+CON = zeros(1,NLAM);
+
+display('============================');
+display('Now Entering FDFD Simulation');
+display('============================');
 
 % PARAMETER SWEEP LOOP
 for i = 1 : NLAM
@@ -140,21 +144,24 @@ for i = 1 : NLAM
     
     % PERFORM FDFD ANALYSIS
     DAT = fdfd2d(DEV,SRC);
+    clc;
+    display('============================================');
+    display(['Finished ' num2str(i) 'th Backwards Divide']);
+    display('============================================');
     REF(i) = DAT.REF;
     TRN(i) = DAT.TRN;
     CON(i) = DAT.CON;
     time = toc;
     disp(['Estimated Time: ' num2str(time*(NLAM-i)/60) ' minutes']);
     disp([num2str(i) ' out of ' num2str(NLAM) ' Iterations']);
-    clc
     
 end
 
 % DISPLAY FINAL ANSWER
-a = plot(SRC.lam0,REF,'LineWidth',1.5,'-r');
+a = plot(lam0,REF,'LineWidth',1.5,'Color','r');
 hold on;
-a2 = plot(SRC.lam0,TRN,'LineWidth',1.5,'-b');
-a3 = plot(SRC.lam0,CON,'LineWidth',1.5,'-k');
+a2 = plot(lam0,TRN,'LineWidth',1.5,'Color','b');
+a3 = plot(lam0,CON,'LineWidth',1.5,'Color','k');
 hold off;
 a4 = get(a(1),'Parent');
 set(a4,'FontSize',11);
