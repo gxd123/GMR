@@ -53,7 +53,7 @@ nr   = sqrt(ur*er);             % Substrate refractive index
 w    = 0.5000*lamd;             % Tooth width
 L    = 1.0000*lamd;             % Grating period
 d    = 0.1500*lamd;             % Grating depth
-t    = lamd/(2*nr);             % Substrate thickness
+t    = 2*lamd/(2*nr);             % Substrate thickness
 ff   = 0.30;                    % Fill fraction
 
 % EXTERNAL MATERIALS
@@ -63,7 +63,7 @@ ur2 = 1.0;                    % Transmission region permeability
 er2 = 1.0;                    % Transmission region permittivity
 
 % GRID PARAMETERS
-NRES = 60;                    % Grid resolution
+NRES = 100;                    % Grid resolution
 BUFZ = 2*lam02 * [1 1];       % Spacer region above and below grating
 DEV.NPML = [20 20];           % Size of PML at top and bottom of grid
 
@@ -116,17 +116,17 @@ ER2 = er1*ones(Nx2,Ny2);
 % Calculate start and stop indices for filling in the grid
 nt1 = 2*DEV.NPML(1) + ceil(BUFZ(1)/dy2);
 nt2 = nt1 + round(t/dy2) - 1;
-nd1 = round((nt2+nt1)/2);
+nd1 = round((nt2-nt1)/2);
 nd2 = nt2;
 nx1 = round(Nx2*ff/2);
-nx2 = round(Nx2 - Nx2*ff/2);
+nx2 = round(Nx2/2 + w/dx2/2);
 
 % Fill in the permeability regions
 UR2(:,:) = ur;
 
 % Fill in the permittivity regions
 ER2(:,nt1:nt2) = er;
-% ER2(nx1:nx2,nd1:nd2) = 1;
+ER2(nx1:nx2,nd1:nd2) = er;
 
 
 DEV.UR2 = fliplr(UR2);
@@ -142,6 +142,7 @@ title('\epsilon_r');
 xlabel('x (\mum)'); ylabel('y (\mum)');
 colorbar;
 
+return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -17,9 +17,9 @@ nanometers  = 1e-3 * micrometers;
 lam0 = 1.55 * micrometers;
 
 % SLAB WAVEGUIDE PARAMETERS
-nslab = 2.0;
+nslab = sqrt(2.0);
 nclad = 1.0;
-a     = 1*lam0;
+a     = lam0/(2*nslab);
 
 % GRID PARAMETERS
 Sx   = 5*lam0;
