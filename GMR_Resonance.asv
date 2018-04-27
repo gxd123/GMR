@@ -42,13 +42,14 @@ SRC.MODE    = 'E';
 
 % GRATING PARAMETERS
 fd      = 1.5 * gigahertz;
-lamd    = c0/fd;
-L       = 15.342 * centimeters;
+lamd    = c0/fd;    
+L       = 20 * centimeters;
 t       = 5.588 * centimeters;
 d       = 1.999 * centimeters;
-f       = 0.5;
+f       = 0.326;
 er      = 2.35;
 ur      = 1.0;
+
 
 % EXTERNAL MATERIALS
 ur1 = 1.0; %permeability in the reflection region
@@ -125,8 +126,6 @@ ny3 = ny2 + round(t/dy2) - 1;
 DEV.ER2(:,ny2:ny3) = er;
 DEV.ER2(nx1:nx2,ny1:ny2) = er;
 
-imagesc(DEV.ER2');
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -163,7 +162,6 @@ for i = 1 : NLAM
 end
 
 % DISPLAY FINAL ANSWER
-figure('Color','w');
 a = plot(f0,REF,'LineWidth',1.5,'Color','r');
 hold on;
 a2 = plot(f0,TRN,'LineWidth',1.5,'Color','b');
