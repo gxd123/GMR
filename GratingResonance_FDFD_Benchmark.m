@@ -12,7 +12,8 @@ clear all;
 close all;
 
 % UNITS
-micrometers = 1;
+nanometers = 1;
+micrometers = 1e3 * nanometers;
 millimeters = 1e3 * micrometers;
 meters = 1e3 * millimeters;
 degrees = pi/180;
@@ -24,49 +25,54 @@ gigahertz = 1e9 * hertz;
 c0 = 299792458 * meters/seconds;
 
 % POINTS FOR SWEEP 
-Nf = 200;
+Nf = 501;
 tot_ref = zeros(1,Nf);
 tot_trn = tot_ref;
 tot_con = tot_ref;
+
+% FIGURE SETTINGS 
+fig = 0;        % 0 for no figures, 1 for figure animation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DEFINE SIMULATION PARAMETERS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SOURCE PARAMETERS
-SRC.lam0 = 1.55 * micrometers;    % Free space wavelength
+SRC.lam0 = 550 * nanometers;    % Free space wavelength
 SRC.theta = 0 * degrees;
 SRC.MODE = 'E';                   % EM mode
 f0 = c0/SRC.lam0;
-lam01 = 2.00 * micrometers;
-lam02 = 1.00 * micrometers;
+lam01 = 400 * nanometers;
+lam02 = 700 * nanometers;
 lam0 = linspace(lam01,lam02,Nf);
 
 % GRATING PARAMETERS
-lamd = 1.55 * micrometers;      % Design wavelength
+lamd = 550 * nanometers;        % Design wavelength
 fd   = c0/lamd;                 % Design frequency
-w    = 0.1300*lamd;             % Tooth width
-L    = 1.0000*lamd;             % Grating period
-d    = 0.5000*lamd;             % Grating depth
-t    = 1.0000*lamd;             % Substrate thickness
+% w    = 0.1300*lamd;             % Tooth width
+L    = 314 * nanometers;             % Grating period
+d    = 134 * nanometers;             % Grating depth
+t    = 1.0 * lamd;              % Substrate thickness
 ur   = 1.0;                     % Grating permeability
-er   = 2.0;                     % Grating permittivity
+ers  = 1.52^2;              % Substrate permittivity
+erl  = 2.0^2;               % Low grating permittivity
+erh  = 2.1^2;               % High grating permittivity
 
 % EXTERNAL MATERIALS
 ur1 = 1.0;                    % Reflection region permeability
 er1 = 1.0;                    % Reflection region permittivity
 ur2 = 1.0;                    % Transmission region permeability
-er2 = 1.0;                    % Transmission region permittivity
+er2 = ers;                    % Transmission region permittivity
 
 % GRID PARAMETERS
 NRES = 100;                    % Grid resolution
-BUFZ = 2*lam02 * [1 1];       % Spacer region above and below grating
+BUFZ = 4*lam02 * [1 1];       % Spacer region above and below grating
 DEV.NPML = [20 20];           % Size of PML at top and bottom of grid
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% CALCULATE OPTIMIZED GRID
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Calculate refractive indices
-ndev = sqrt(ur*er);
+ndev = sqrt(ur*ers);
 nref = sqrt(ur1*er1);
 ntrn = sqrt(ur2*er2);
 
@@ -75,7 +81,7 @@ lam_min = lam02/max([ndev nref ntrn]);
 dlam = lam_min/NRES; 
 
 % Consider mechanical parameters
-dmin = w;            % x2 is the smallest defined distance
+dmin = L/2;            % x2 is the smallest defined distance
 dd = dmin/2;   % Delta for distance
 
 % Choose the highest resolution
@@ -114,26 +120,32 @@ nt1 = 2*DEV.NPML(1) + ceil(BUFZ(1)/dy2);
 nt2 = nt1 + round(t/dy2) - 1;
 nd1 = nt2;
 nd2 = nd1 + round(d/dy2) - 1;
-nx1 = round(Nx2/2 - w/dx2/2);
-nx2 = round(Nx2/2 + w/dx2/2);
+nx1 = 1;
+nx2 = round(Nx2/2);
+nx3 = round(Nx2/2) + 1;
+nx4 = Nx2;
 
 % Fill in the permeability regions
 UR2(:,:) = ur;
 
 % Fill in the permittivity regions
-ER2(:,nt1:nt2) = er;
-ER2(nx1:nx2,nd1:nd2) = er;
-
+ER2(:,1:nt1-1) = er2;
+ER2(:,nt2+1:end) = er1;
+ER2(:,nt1:nt2) = ers;
+ER2(nx1:nx2,nd1:nd2) = erl;
+ER2(nx3:nx4,nd1:nd2) = erh;
 
 DEV.UR2 = fliplr(UR2);
 DEV.ER2 = fliplr(ER2);
 
-figure('color','w');
-subplot(121);
-imagesc(xa2,ya2,DEV.ER2');
-title('\epsilon_r');
-xlabel('x (\mum)'); ylabel('y (\mum)');
-colorbar;
+if fig
+    figure('color','w');
+    subplot(121);
+    imagesc(xa2,ya2,DEV.ER2');
+    title('\epsilon_r');
+    xlabel('x (nm)'); ylabel('y (nm)');
+    colorbar;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
@@ -147,7 +159,10 @@ for n = 1:Nf
     tot_con(n) = DAT.CON;
     clc;
     time = toc;
-    disp(['Estimated Time: ' num2str(time*(Nf-n)/60) ' minutes']);
+    min = floor(time*(Nf-n)/60);
+    sec = round((time*(Nf-n)/60 - min)*60);
+    disp(['Estimated Time: ' num2str(min) ' minutes '...
+            num2str(sec) ' seconds']);
     disp([num2str(n) ' out of ' num2str(Nf) ' Iterations']);
 %     figure(1);
 %     plot(theta(1:n)./degrees,100.*tot_ref(1:n),'r','linewidth',2);
@@ -174,15 +189,16 @@ for n = 1:Nf
 %     xlabel('x (cm)'); ylabel('y (cm)'); caxis([1 10]);
 %     colorbar;
 %     axis equal tight;
-
-    subplot(122);
-    imagesc(dx.*[0,Nx-1],dy.*[0,Ny-1],real(DAT.F)'); 
-    title([SRC.MODE ' Mode @ ' num2str(SRC.lam0) ' \mum']);
-    shading interp;
-    xlabel('x (\mum)'); ylabel('y (\mum)');
-    colorbar;
-%     axis equal tight;
-    drawnow;
+    if fig
+        subplot(122);
+        imagesc(dx.*[0,Nx-1],dy.*[0,Ny-1],real(DAT.F)'); 
+        title([SRC.MODE ' Mode @ ' num2str(SRC.lam0) ' \mum']);
+        shading interp;
+        xlabel('x (\mum)'); ylabel('y (\mum)');
+        colorbar;
+    %     axis equal tight;
+        drawnow;
+    end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DISPLAY
@@ -193,12 +209,14 @@ disp(['Source Frequency = ' num2str(f0(end)./gigahertz) ' GHz']);
 disp(['Angle of Incidence = ' num2str(SRC.theta./degrees) ' degrees']);
 disp(['Electromagnetic Mode = ' SRC.MODE]);
 disp(['Device Design Frequency = ' num2str(fd./gigahertz) ' GHz']);
-disp(['w = ' num2str(w./micrometers) ' mm']);
-disp(['L = ' num2str(L./micrometers) ' mm']);
-disp(['d = ' num2str(d./micrometers) ' mm']);
-disp(['t = ' num2str(t./micrometers) ' mm']);
+% disp(['w = ' num2str(w./micrometers) ' mm']);
+disp(['L = ' num2str(L./nanometers) ' mm']);
+disp(['d = ' num2str(d./nanometers) ' mm']);
+disp(['t = ' num2str(t./nanometers) ' mm']);
 disp(['ur = ' num2str(ur)]);
-disp(['er = ' num2str(er)]);
+disp(['ers = ' num2str(ers)]);
+disp(['erl = ' num2str(erl)]);
+disp(['erh = ' num2str(erh)]);
 disp(['ur1 = ' num2str(ur1)]);
 disp(['er1 = ' num2str(er1)]);
 disp(['ur2 = ' num2str(ur2)]);
@@ -227,15 +245,15 @@ disp(['TRN = ' num2str(100*DAT.TRN) '%']);
 disp(['CON = ' num2str(100*DAT.CON) '%']);
 
 figure('color','white');
-plot(lam0./micrometers,100.*tot_ref,'r','linewidth',2);
+plot(lam0./nanometers,100.*tot_ref,'r','linewidth',2);
 hold on;
-plot(lam0./micrometers,100.*tot_trn,'b','linewidth',2);
-plot(lam0./micrometers,100.*tot_con,'--k','linewidth',2);
+plot(lam0./nanometers,100.*tot_trn,'b','linewidth',2);
+plot(lam0./nanometers,100.*tot_con,'--k','linewidth',2);
 hold off;
 title([SRC.MODE ' Mode Angle Sweep']);
-xlabel('Wavelength \lambda (\mum)'); ylabel('Power (%)');
+xlabel('Wavelength \lambda (nm)'); ylabel('Power (%)');
 legend('Reflectance','Transmittance','Conservation');
-xlim([lam0(end) lam0(1)]./micrometers); ylim([0 102]);
+xlim([lam0(1) lam0(end)]./nanometers); ylim([0 102]);
 
 
 
