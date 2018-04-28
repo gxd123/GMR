@@ -24,7 +24,7 @@ gigahertz = 1e9 * hertz;
 c0 = 299792458 * meters/seconds;
 
 % POINTS FOR SWEEP 
-Nf = 51;
+Nf = 501;
 tot_ref = zeros(1,Nf);
 tot_trn = tot_ref;
 tot_con = tot_ref;
@@ -40,8 +40,8 @@ SRC.lam0 = 1.55 * micrometers;    % Free space wavelength
 SRC.theta = 0 * degrees;
 SRC.MODE = 'E';                   % EM mode
 f0 = c0/SRC.lam0;
-lam01 = 1.0 * micrometers;
-lam02 = 2.1 * micrometers;
+lam01 = 1.4 * micrometers;
+lam02 = 1.7 * micrometers;
 lam0 = linspace(lam01,lam02,Nf);
 
 % GRATING PARAMETERS
@@ -51,10 +51,9 @@ ur   = 1.0;                     % Grating permeability
 er   = 2.0;                     % Grating permittivity
 nr   = sqrt(ur*er);             % Substrate refractive index 
 w    = 0.5000*lamd;             % Tooth width
-L    = 1.0000*lamd;             % Grating period
+L    = 0.8621*lamd;             % Grating period
 d    = 0.1500*lamd;             % Grating depth
-t    = 2*lamd/(2*nr);             % Substrate thickness
-ff   = 0.30;                    % Fill fraction
+t    = lamd/(2*nr);             % Substrate thickness
 
 % EXTERNAL MATERIALS
 ur1 = 1.0;                    % Reflection region permeability
@@ -63,7 +62,7 @@ ur2 = 1.0;                    % Transmission region permeability
 er2 = 1.0;                    % Transmission region permittivity
 
 % GRID PARAMETERS
-NRES = 100;                    % Grid resolution
+NRES = 60;                    % Grid resolution
 BUFZ = 2*lam02 * [1 1];       % Spacer region above and below grating
 DEV.NPML = [20 20];           % Size of PML at top and bottom of grid
 
@@ -107,6 +106,9 @@ DEV.RES = [dx2,dy2];
 xa2 = [0:Nx2-1]*dx2;
 ya2 = [0:Ny2-1]*dy2;
 
+f = linspace(0.01,0.99,Nf);
+for n = 1:Nf
+    ff = f(n);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% BUILD DEVICE ON 2x GRID
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -116,24 +118,26 @@ ER2 = er1*ones(Nx2,Ny2);
 % Calculate start and stop indices for filling in the grid
 nt1 = 2*DEV.NPML(1) + ceil(BUFZ(1)/dy2);
 nt2 = nt1 + round(t/dy2) - 1;
-nd1 = round((nt2-nt1)/2);
+% nd1 = round((nt2+nt1)/2);
+% nd2 = nt2;
 nd2 = nt2;
+nd1 = nt2 - round(d/dy2);
 nx1 = round(Nx2*ff/2);
-nx2 = round(Nx2/2 + w/dx2/2);
+nx2 = round(Nx2 - Nx2*ff/2);
 
 % Fill in the permeability regions
 UR2(:,:) = ur;
 
 % Fill in the permittivity regions
 ER2(:,nt1:nt2) = er;
-ER2(nx1:nx2,nd1:nd2) = er;
+ER2(nx1:nx2,nd1:nd2) = 1;
 
 
 DEV.UR2 = fliplr(UR2);
 DEV.ER2 = fliplr(ER2);
 
 
-figure('color','w');
+% figure('color','w');
 if fig
     subplot(121);
 end
@@ -142,11 +146,9 @@ title('\epsilon_r');
 xlabel('x (\mum)'); ylabel('y (\mum)');
 colorbar;
 
-return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for n = 1:Nf
     tic;
     SRC.lam0 = lam0(n);         %angle of incidence
     DAT = fdfd2d(DEV,SRC);
@@ -239,15 +241,16 @@ disp(['TRN = ' num2str(100*DAT.TRN) '%']);
 disp(['CON = ' num2str(100*DAT.CON) '%']);
 
 figure('color','white');
-plot(lam0./micrometers,100.*tot_ref,'r','linewidth',2);
+plot(f,100.*tot_ref,'r','linewidth',2);
 hold on;
-plot(lam0./micrometers,100.*tot_trn,'b','linewidth',2);
-plot(lam0./micrometers,100.*tot_con,'--k','linewidth',2);
+plot(f,100.*tot_trn,'b','linewidth',2);
+plot(f,100.*tot_con,'--k','linewidth',2);
 hold off;
-title([SRC.MODE ' Mode Angle Sweep']);
-xlabel('Wavelength \lambda (\mum)'); ylabel('Power (%)');
+title([SRC.MODE ' Mode Fill Fraction Sweep']);
+xlabel('Fill Fraction'); ylabel('Power (%)');
 legend('Reflectance','Transmittance','Conservation');
-xlim([lam0(1) lam0(end)]./micrometers); ylim([0 102]);
+% xlim([lam0(1) lam0(end)]./micrometers); 
+ylim([0 102]);
 
 
 

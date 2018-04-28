@@ -22,7 +22,7 @@ nclad = 1.0;
 a     = lam0/(2*nslab);
 
 % GRID PARAMETERS
-Sx   = 5*lam0;
+Sx   = 10*lam0;
 Sy   = 5*lam0;
 NRES = 10;
 NPML = [20 20 20 20];
