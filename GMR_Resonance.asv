@@ -19,7 +19,7 @@ fig  = figure('Color','w');
 micrometers = 1;
 millimeters = 1e3 * micrometers;
 centimeters = 1e4 * micrometers;
-meters      = 1e3 * centimeters;
+meters      =;
 degrees     = pi/180;
 seconds     = 1;
 hertz       = 1/seconds;
@@ -43,12 +43,9 @@ SRC.MODE    = 'E';
 
 % GRATING PARAMETERS
 lamd    = 1.55 * micrometers;
-fd      = c0/lamd;
 er      = 2.0;
 ur      = 1.0;
 nr      = sqrt(ur*er);
-t       = lamd/(2*nr);          % Substrate thickness
-
 
 % EXTERNAL MATERIALS
 ur1 = 1.0; %permeability in the reflection region
@@ -60,6 +57,21 @@ er2 = 1.0; %permittivity in the transmission region
 NRES = 100;
 BUFZ = 2*max(lam0) * [1 1];
 DEV.NPML = [0 0 20 20];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% CALCULATE DIELECTRIC SLAB FOR LOW BACKGROUND REFLECTANCE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% SUBSTRATE THICKNESS
+t   = lamd/(2*nr);
+
+% EFFECTIVE REFRACTIVE INDEX TO REALIZE WITH GRATING
+nar = sqrt(nr);
+
+% CALCULATE GRATING PERIOD TO PLACE RESONANCE AT 
+L   = 1;
+
+return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% CALCULATE OPTIMIZED GRID
