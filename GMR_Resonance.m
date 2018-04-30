@@ -46,7 +46,7 @@ lamd    = c0/fd;
 L       = 15.342 * centimeters;
 t       = 5.588 * centimeters;
 d       = 1.999 * centimeters;
-f       = 0.5;
+f       = 0.326;
 er      = 2.35;
 ur      = 1.0;
 
@@ -126,6 +126,9 @@ DEV.ER2(:,ny2:ny3) = er;
 DEV.ER2(nx1:nx2,ny1:ny2) = er;
 
 imagesc(DEV.ER2');
+axis equal tight;
+colormap('Gray');
+drawnow;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
