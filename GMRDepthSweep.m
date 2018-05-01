@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% GMRPeriodSweep.m
+% GMRDepthSweep.m
 % 
 % This MATLAB script does an extensive search to maximize reflectance of a
 % GMR filter
@@ -8,6 +8,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% INITIALIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+set(0,'DefaultFigureWindowStyle','docked');
 
 % RESTORE STATE
 clc;
@@ -31,7 +33,7 @@ c0 = 299792458 * meters/seconds;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % SOURCE PARAMETERS
-NFREQ       = 201;
+NFREQ       = 501;
 SRC.lam0    = 1.55 * micrometers;    % Free space wavelength
 SRC.theta   = 0 * degrees;
 SRC.MODE    = 'E';                   % EM mode
@@ -41,15 +43,14 @@ lam2       = 1.7 * micrometers;
 lam0        = linspace(lam1,lam2,NFREQ);
 
 % GRATING PARAMETERS
-lamd = 1.55 * micrometers;      % Design wavelength
-fd   = c0/lamd;                 % Design frequency
-ur   = 1.0;                     % Grating permeability
-er   = 2.0;                     % Grating permittivity
-nr   = sqrt(ur*er);             % Substrate refractive index 
-w    = 0.5000*lamd;             % Tooth width
-d    = 0.1500*lamd;             % Grating depth
-t    = lamd/(2*nr);             % Substrate thickness
-f    = 0.934096;                % Fill fraction
+lamd = 1.55 * micrometers;       % Design wavelength
+fd   = c0/lamd;                  % Design frequency
+ur   = 1.0;                      % Grating permeability
+er   = 2.0;                      % Grating permittivity
+nr   = sqrt(ur*er);              % Substrate refractive index 
+L    = 0.856092903225807 * lamd; % Grating period
+t    = lamd/(2*nr);              % Substrate thickness
+f    = 0.5;                      % Fill fraction
 
 % EXTERNAL MATERIALS
 ur1 = 1.0;                    % Reflection region permeability
@@ -68,12 +69,12 @@ TRN = REF;
 CON = REF;
 
 % PERIOD SWEEP
-Lr = linspace(0.87*lamd,0.89*lamd,NFREQ);
+dr = linspace(0.001,lamd,NFREQ);
 
 VIS = 1;
 
 for n = 1:NFREQ
-    L    = Lr(n);             % Grating period
+    d    = dr(n);             % Grating period
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% CALCULATE OPTIMIZED GRID
@@ -123,7 +124,7 @@ for n = 1:NFREQ
     % COMPUTE START AND STOP INDICES
     % X Indices
     wx  = round(f*Nx2);
-    nx1 = round((Nx2-wx)/2) + 1;
+    nx1 = round((Nx2-wx)/2);
     nx2 = nx1 + wx - 1;
     
     % Y Indices
@@ -135,7 +136,7 @@ for n = 1:NFREQ
     % INCORPORATE GRATING
     DEV.ER2(:,ny2:ny3)          = er;
     DEV.ER2(nx1:nx2,ny2:ny4)    = 1.0;
-
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% IMPLEMENT FDFD
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -154,7 +155,7 @@ for n = 1:NFREQ
     disp([num2str(n) ' out of ' num2str(NFREQ) ' Iterations']);
     
     if VIS
-        plot(Lr/lamd,REF);
+        plot(dr/lamd,REF);
         title([SRC.MODE ' Mode @ ' num2str(SRC.lam0) ' \mum']);
         shading interp;
         xlabel('\lambda_d'); ylabel('REF');
@@ -165,7 +166,7 @@ end
 %% DISPLAY
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-plot(Lr./lamd,REF,'LineWidth',1.5);
+plot(dr./lamd,REF,'LineWidth',1.5);
 title('Period Sweep','FontSize',14);
 ylabel('Reflectance','FontSize',12);
 xlabel('$\frac{L}{\lambda_0}$','FontSize',12,'Interpreter','LaTex');
@@ -173,4 +174,4 @@ xlabel('$\frac{L}{\lambda_0}$','FontSize',12,'Interpreter','LaTex');
 % OBTAIN BEST FIT FOR PERIOD
 A = (max(unique(REF)));
 A = find(REF == A);
-L = Lr(A)/lamd;
+d = dr(A)/lamd;

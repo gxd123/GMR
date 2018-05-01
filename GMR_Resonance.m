@@ -7,6 +7,8 @@
 %% INITIALIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+set(0,'DefaultFigureWindowStyle','docked');
+
 % RESTORE STATE
 clear all;
 close all;
@@ -47,10 +49,10 @@ fd      = c0/lamd;
 er      = 2.0;
 ur      = 1.0;
 nr      = sqrt(ur*er);
-t       = lamd/(2*nr);          % Substrate thickness 
-L       = 0.800129 * lamd;      % Grating period
-d       = 0.15 * lamd;          % Grating depth
-f       = 0.35;                 % Duty cycle
+t       = lamd/(2*nr);              % Substrate thickness 
+L       = 0.83254 * lamd; % Grating period
+d       = 0.192547096774194 * lamd; % Grating depth
+f       = 0.934096;                     % Duty cycle
 
 % EXTERNAL MATERIALS
 ur1 = 1.0; %permeability in the reflection region
@@ -122,15 +124,16 @@ nx2 = nx1 + wx - 1;
 ny1 = 2*DEV.NPML(3) + round(BUFZ(1)/dy2) + 1;
 ny2 = ny1 + round(d/dy2) - 1;
 ny3 = ny2 + round(t/dy2) - 1;
+ny4 = ny2 + round(d/dy2) - 1;
 
 % INCORPORATE GRATING
 DEV.ER2(:,ny2:ny3)          = er;
-DEV.ER2(nx1:nx2,ny1:ny2)    = er;
+DEV.ER2(nx1:nx2,ny2:ny4)    = 1.0;
 
 imagesc(DEV.ER2');
 axis equal tight;
 colormap('Gray');
-drawnow;
+colorbar;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
