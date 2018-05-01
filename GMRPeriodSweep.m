@@ -31,7 +31,7 @@ c0 = 299792458 * meters/seconds;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % SOURCE PARAMETERS
-NFREQ       = 101;
+NFREQ       = 501;
 SRC.lam0    = 1.55 * micrometers;    % Free space wavelength
 SRC.theta   = 0 * degrees;
 SRC.MODE    = 'E';                   % EM mode
@@ -93,8 +93,8 @@ for n = 1:NFREQ
     % SNAP GRID TO CRITICAL DIMENSION
     Nx      = 2*ceil(L/dx/2) + 1; % Ensure grid is always odd
     dx      = L/Nx;
-    Ny      = ceil(d/dy);
-    dy      = d/Ny; % Recalculate resolution
+    Ny      = ceil((d+t)/dy);
+    dy      = (d+t)/Ny; % Recalculate resolution
     
     % COMPUTE GRID SIZE
     Sx      = L;
@@ -132,8 +132,8 @@ for n = 1:NFREQ
     ny3 = ny2 + round(t/dy2) - 1;
     
     % INCORPORATE GRATING
-    DEV.ER2(:,ny2:ny3) = er;
-    DEV.ER2(nx1:nx2,ny1:ny2) = er;
+    DEV.ER2(:,ny2:ny3)          = er;
+    DEV.ER2(nx1:nx2,ny1:ny2)    = er;
 
     if VIS
         subplot(121);
