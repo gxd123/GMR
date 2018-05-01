@@ -38,7 +38,6 @@ function DAT = tmm1d(DEV,SRC)
 % .TRN Transmittance
 
 % UNITS
-degrees = pi/180;
 j = 1i;
 I = [1 0;0 1];
 O = [0 0;0 0];
@@ -47,8 +46,8 @@ O = [0 0;0 0];
 %% DEFINE SIMULATION PARAMETERS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SODEV.URCE PARAMETDEV.ERS
-SRC.theta = SRC.theta * degrees;          % Elevation angle in degrees
-SRC.phi   = SRC.phi * degrees;            % Azimuthal angle in degrees
+SRC.theta = SRC.theta;          % Elevation angle in degrees
+SRC.phi   = SRC.phi;            % Azimuthal angle in degrees
 
 % DEFINE LAYERS
 % DEV.L  = DEV.L*SRC.lam0;                  % Array of the thickness of each layer

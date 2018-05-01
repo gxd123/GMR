@@ -24,7 +24,7 @@ gigahertz = 1e9 * hertz;
 c0 = 299792458 * meters/seconds;
 
 % POINTS FOR SWEEP 
-Nf = 101;
+Nf = 501;
 tot_ref = zeros(1,Nf);
 tot_trn = tot_ref;
 tot_con = tot_ref;
@@ -50,11 +50,10 @@ fd   = c0/lamd;                 % Design frequency
 ur   = 1.0;                     % Grating permeability
 er   = 2.0;                     % Grating permittivity
 nr   = sqrt(ur*er);             % Substrate refractive index 
-w    = 0.5000*lamd;             % Tooth width
-L    = 0.8621*lamd;             % Grating period
-d    = 0.1500*lamd;             % Grating depth
+L    = 0.83254*lamd;             % Grating period (DO NOT CHANGE)
+d    = 0.192547096774194*lamd;             % Grating depth
 t    = lamd/(2*nr);             % Substrate thickness
-ff   = 0.5;                    % Fill fraction
+ff   = 0.934096;                     % Fill fraction  (DO NOT CHANGE)
 
 % EXTERNAL MATERIALS
 ur1 = 1.0;                    % Reflection region permeability
@@ -63,7 +62,7 @@ ur2 = 1.0;                    % Transmission region permeability
 er2 = 1.0;                    % Transmission region permittivity
 
 % GRID PARAMETERS
-NRES = 60;                    % Grid resolution
+NRES = 100;                    % Grid resolution
 BUFZ = 2*lam02 * [1 1];       % Spacer region above and below grating
 DEV.NPML = [20 20];           % Size of PML at top and bottom of grid
 
@@ -80,12 +79,15 @@ lam_min = min([lam01 lam02])/max([ndev nref ntrn]);
 dlam = lam_min/NRES; 
 
 % Consider mechanical parameters
-dmin = w;            % x2 is the smallest defined distance
+dmin = ff*L;   % Fill fraction is
 dd = dmin/2;   % Delta for distance
 
 % Choose the highest resolution
 dx = dlam;
 dy = dx;
+
+% dx =    0.055172006602080
+% dy = dx;
 
 % Snap grid to critical dimension (in this case L and d+t)
 Nx = 2*ceil(L/dx/2) + 1;      % First guess at grid spacing (odd for periodic)
@@ -182,7 +184,7 @@ disp(['Source Frequency = ' num2str(f0(end)./gigahertz) ' GHz']);
 disp(['Angle of Incidence = ' num2str(SRC.theta./degrees) ' degrees']);
 disp(['Electromagnetic Mode = ' SRC.MODE]);
 disp(['Device Design Frequency = ' num2str(fd./gigahertz) ' GHz']);
-disp(['w = ' num2str(w./micrometers) ' mm']);
+disp(['ff = ' num2str(ff*100) ' %']);
 disp(['L = ' num2str(L./micrometers) ' mm']);
 disp(['d = ' num2str(d./micrometers) ' mm']);
 disp(['t = ' num2str(t./micrometers) ' mm']);

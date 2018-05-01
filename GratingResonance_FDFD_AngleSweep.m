@@ -19,6 +19,7 @@ degrees = pi/180;
 seconds = 1;
 hertz = 1/seconds;
 gigahertz = 1e9 * hertz;
+degrees = pi/180;
 
 % CONSTANTS
 c0 = 299792458 * meters/seconds;
@@ -40,9 +41,11 @@ SRC.lam0 = 1.55 * micrometers;    % Free space wavelength
 SRC.theta = 0 * degrees;
 SRC.MODE = 'E';                   % EM mode
 f0 = c0/SRC.lam0;
-lam01 = 1.4 * micrometers;
-lam02 = 1.7 * micrometers;
-lam0 = linspace(lam01,lam02,Nf);
+lam01 = 1.0 * micrometers;
+lam02 = 2.1 * micrometers;
+theta01 = -89.9 * degrees;
+theta02 =  89.9 * degrees;
+theta = linspace(theta01,theta02,Nf);
 
 % GRATING PARAMETERS
 lamd = 1.55 * micrometers;      % Design wavelength
@@ -50,10 +53,10 @@ fd   = c0/lamd;                 % Design frequency
 ur   = 1.0;                     % Grating permeability
 er   = 2.0;                     % Grating permittivity
 nr   = sqrt(ur*er);             % Substrate refractive index 
-L0    = 0.856092903225807*lamd;             % Grating period (DO NOT CHANGE)
-d    = 0.192547096774194*lamd;             % Grating depth
+L    = 0.8621*lamd;             % Grating period (DO NOT CHANGE)
+d    = 0.1500*lamd;             % Grating depth
 t    = lamd/(2*nr);             % Substrate thickness
-ff   = 0.934096;                     % Fill fraction  (DO NOT CHANGE)
+ff   = 0.5;                     % Fill fraction  (DO NOT CHANGE)
 
 % EXTERNAL MATERIALS
 ur1 = 1.0;                    % Reflection region permeability
@@ -62,13 +65,9 @@ ur2 = 1.0;                    % Transmission region permeability
 er2 = 1.0;                    % Transmission region permittivity
 
 % GRID PARAMETERS
-NRES = 100;                    % Grid resolution
+NRES = 60;                    % Grid resolution
 BUFZ = 2*lam02 * [1 1];       % Spacer region above and below grating
 DEV.NPML = [20 20];           % Size of PML at top and bottom of grid
-
-Lr = linspace(0.82*lamd,0.85*lamd,Nf);
-for n = 1:Nf
-    L    = Lr(n);             % Grating period
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% CALCULATE OPTIMIZED GRID
@@ -83,7 +82,7 @@ lam_min = min([lam01 lam02])/max([ndev nref ntrn]);
 dlam = lam_min/NRES; 
 
 % Consider mechanical parameters
-dmin = ff*L;            % x2 is the smallest defined distance
+dmin = ff*L;   % Fill fraction is
 dd = dmin/2;   % Delta for distance
 
 % Choose the highest resolution
@@ -95,8 +94,8 @@ Nx = 2*ceil(L/dx/2) + 1;      % First guess at grid spacing (odd for periodic)
 Ny = ceil((d+t)/dy);
 
 % Calculate new grid resolutions
-dx = L/Nx
-dy = (d+t)/Ny
+dx = L/Nx;
+dy = (d+t)/Ny;
 
 % Incorporate PML and spacer regions
 Ny = Ny + DEV.NPML(1) + DEV.NPML(2) + ceil(BUFZ(1)/dy) + ceil(BUFZ(2)/dy);
@@ -137,6 +136,8 @@ ER2(nx1:nx2,nd1:nd2) = 1;
 DEV.UR2 = fliplr(UR2);
 DEV.ER2 = fliplr(ER2);
 
+
+figure('color','w');
 if fig
     subplot(121);
 end
@@ -148,48 +149,25 @@ colorbar;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+for n = 1:Nf
     tic;
-    SRC.lam0 = lamd;         %angle of incidence
+    SRC.theta = theta(n);         %angle of incidence
     DAT = fdfd2d(DEV,SRC);
     tot_ref(n) = DAT.REF;
     tot_trn(n) = DAT.TRN;
     tot_con(n) = DAT.CON;
     clc;
     time = toc;
-    mint = floor(time*(Nf-n)/60);
-    sec = round((time*(Nf-n)/60 - mint)*60);
-    disp(['Estimated Time: ' num2str(mint) ' minutes '...
+    min = floor(time*(Nf-n)/60);
+    sec = round((time*(Nf-n)/60 - min)*60);
+    disp(['Estimated Time: ' num2str(min) ' minutes '...
             num2str(sec) ' seconds']);
     disp([num2str(n) ' out of ' num2str(Nf) ' Iterations']);
-%     figure(1);
-%     plot(theta(1:n)./degrees,100.*tot_ref(1:n),'r','linewidth',2);
-%     hold on;
-%     plot(theta(1:n)./degrees,100.*tot_trn(1:n),'b','linewidth',2);
-%     plot(theta(1:n)./degrees,100.*tot_con(1:n),'g','linewidth',2);
-%     hold off;
-%     title('Device Behavior');
-%     xlabel('Angle of Incidence (degrees)'); ylabel('Power');
-%     xlim([theta(1) theta(end)]./degrees); ylim([0 102]);
-%     drawnow;
-    
-%     figure(1);
-%     subplot(131);
-%     imagesc(dx2.*[-floor(Nx2/2),floor(Nx2/2)],dy.*[0,Ny-1],DEV.UR2'); 
-%     title('\mu_{r}');
-%     xlabel('x (cm)'); ylabel('y (cm)'); caxis([1 10]);
-%     colorbar;
-%     axis equal tight;
-% 
-%     subplot(132);
-%     imagesc(dx2.*[-floor(Nx2/2),floor(Nx2/2)],dy.*[0,Ny-1],DEV.ER2'); 
-%     title('\epsilon_{r}');
-%     xlabel('x (cm)'); ylabel('y (cm)'); caxis([1 10]);
-%     colorbar;
-%     axis equal tight;
+
     if fig
         subplot(122);
         imagesc(dx.*[0,Nx-1],dy.*[0,Ny-1],real(DAT.F)'); 
-        title([SRC.MODE ' Mode @ ' num2str(SRC.lam0) ' \mum']);
+        title([SRC.MODE ' Mode @ ' num2str(SRC.theta./degrees) ' degrees']);
         shading interp;
         xlabel('x (\mum)'); ylabel('y (\mum)');
         colorbar;
@@ -206,6 +184,7 @@ disp(['Source Frequency = ' num2str(f0(end)./gigahertz) ' GHz']);
 disp(['Angle of Incidence = ' num2str(SRC.theta./degrees) ' degrees']);
 disp(['Electromagnetic Mode = ' SRC.MODE]);
 disp(['Device Design Frequency = ' num2str(fd./gigahertz) ' GHz']);
+disp(['ff = ' num2str(ff*100) ' %']);
 disp(['L = ' num2str(L./micrometers) ' mm']);
 disp(['d = ' num2str(d./micrometers) ' mm']);
 disp(['t = ' num2str(t./micrometers) ' mm']);
@@ -239,16 +218,15 @@ disp(['TRN = ' num2str(100*DAT.TRN) '%']);
 disp(['CON = ' num2str(100*DAT.CON) '%']);
 
 figure('color','white');
-plot(Lr./lamd,100.*tot_ref,'r','linewidth',2);
+plot(theta./degrees,100.*tot_ref,'r','linewidth',2);
 hold on;
-plot(Lr./lamd,100.*tot_trn,'b','linewidth',2);
-plot(Lr./lamd,100.*tot_con,'--k','linewidth',2);
+plot(theta./degrees,100.*tot_trn,'b','linewidth',2);
+plot(theta./degrees,100.*tot_con,'--k','linewidth',2);
 hold off;
 title([SRC.MODE ' Mode Wavelength Sweep']);
-xlabel('Wavelengths (\lambda)'); ylabel('Power (%)');
+xlabel('Wavelength \lambda (\mum)'); ylabel('Power (%)');
 legend('Reflectance','Transmittance','Conservation');
-% xlim([lam0(1) lam0(end)]./micrometers); 
-ylim([0 102]);
+xlim([theta(1) theta(end)]./degrees); ylim([0 102]);
 
 
 
