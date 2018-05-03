@@ -50,9 +50,12 @@ er      = 2.0;
 ur      = 1.0;
 nr      = sqrt(ur*er);
 t       = lamd/(2*nr);              % Substrate thickness 
-L       = 0.83254 * lamd; % Grating period
-d       = 0.192547096774194 * lamd; % Grating depth
-f       = 0.934096;                     % Duty cycle
+L       = 0.856092903225807 * lamd; % Grating period
+% L       = 0.6 * lamd;
+d       = 0.152547096774194 * lamd; % Grating depth
+% d       = 0.15 * lamd;
+f       = 0.454096;                     % Duty cycle
+% f       = 0.8;
 
 % EXTERNAL MATERIALS
 ur1 = 1.0; %permeability in the reflection region
@@ -168,6 +171,9 @@ for i = 1 : NLAM
     disp(['Estimated Time: ' num2str(time*(NLAM-i)/60) ' minutes']);
     disp([num2str(i) ' out of ' num2str(NLAM) ' Iterations']);
     
+    plot(lam0,REF);
+    drawnow
+    
 end
 
 % DISPLAY FINAL ANSWER
@@ -188,3 +194,10 @@ ylim([0 1.05]);
 xlim([lam1 lam2]);
 a = legend('Reflectance','Transmittance','Conservation');
 set(a,'Box','off','FontSize',10.5,'Location','West');
+
+% COMPUTE FWHM
+MAX_REF     = max(REF);
+MAX_IND     = find(REF == MAX_REF);
+H_MAX       = 0.5 * MAX_REF;
+HM_INDEX    = find(REF > H_MAX);
+FWHM        = lam0(max(HM_INDEX)) - lam0(min(HM_INDEX));
