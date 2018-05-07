@@ -61,7 +61,7 @@ f       = 0.454096;                     % Duty cycle
 ur1 = 1.0; %permeability in the reflection region
 er1 = 1.0; %permittivity in the reflection region
 ur2 = 1.0; %permeability in the transmission region
-er2 = 1.0; %permittivity in the transmission region
+er2 = 2.25; %permittivity in the transmission region
 
 % GRID PARAMETERS
 NRES = 100;
@@ -131,7 +131,8 @@ ny4 = ny2 + round(d/dy2) - 1;
 
 % INCORPORATE GRATING
 DEV.ER2(:,ny2:ny3)          = er;
-DEV.ER2(nx1:nx2,ny2:ny4)    = 1.0;
+DEV.ER2(nx1:nx2,ny2:ny4)    = er1;
+DEV.ER2(:,ny3:Ny2)          = er2;
 
 imagesc(DEV.ER2');
 axis equal tight;
@@ -171,7 +172,16 @@ for i = 1 : NLAM
     disp(['Estimated Time: ' num2str(time*(NLAM-i)/60) ' minutes']);
     disp([num2str(i) ' out of ' num2str(NLAM) ' Iterations']);
     
+    subplot(121);
     plot(lam0,REF);
+    
+    subplot(122)
+    imagesc(xa,ya,DEV.ER2');
+    hold on
+    imagesc(xa,ya,abs(DAT.F'));
+    hold off;
+    axis equal tight
+    colormap('Jet');
     drawnow
     
 end
