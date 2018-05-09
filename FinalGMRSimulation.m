@@ -10,42 +10,65 @@ set(0,'DefaultFigureWindowStyle','docked');
 micrometers = 1;
 nanometers  = 1e-3 * micrometers;
 
+Nf = 11;
+tot_ref = zeros(1,Nf);
+tot_trn = tot_ref;
+tot_con = tot_ref;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DASHBOARD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % SOURCE WAVELENGTH
 lam0 = 1.55 * micrometers;
+lam01 = 1.2 * micrometers;
+lam02 = 1.9 * micrometers;
+lam0 = linspace(lam01,lam02,Nf);
 
 % SLAB WAVEGUIDE PARAMETERS
 lamd = 1.55 * micrometers;
-nslab = sqrt(2.0);
-nclad = 1.0;
+nslab  =  sqrt(10);
+nclad1 =  1.0;
+nclad2 =  1.0;
 a     = lamd/(2*nslab);
-L    = 0.8621*lamd;             % Grating period (DO NOT CHANGE)
+a     = 0.1583*lamd;
+L    = 0.4555*lamd;             % Grating period (DO NOT CHANGE)
+% d    = 0.15*lamd;                % Grating depth
 d    = 0.5*a;                % Grating depth
-ff   = 0.5;                     % Fill fraction  (DO NOT CHANGE)
-PER  = 60;                      % Number of periods
+ff   = 0.6;                     % Fill fraction  (DO NOT CHANGE)
+
+% L    = 0.83254*lamd;             % Grating period (DO NOT CHANGE)
+% d    = 0.192547096774194*lamd;             % Grating depth
+% % t    = lamd/(2*nr);             % Substrate thickness
+% ff   = 1-0.934096;                     % Fill fraction  (DO NOT CHANGE)
+
+PER  = 10;                      % Number of periods
+Sper = PER*L;
 
 % GRID PARAMETERS
-Sx   = 70*lamd;
+Sx   = (Sper + 10*L);
 Sy   = 4*lamd;
-NRES = 30;
+NRES = 60;
 NPML = [20 20 20 20];
-nmax = max([nslab nclad]);
+nmax = max([nslab nclad1 nclad2]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% COMPUTE OPTIMIZED GRID
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % FIRST GUESS AT RESOLUTION
-dx = lamd/nmax/NRES;
-dy = lamd/nmax/NRES;
+dx = min([lamd lam01 lam02])/nmax/NRES;
+dy = min([lamd lam01 lam02])/nmax/NRES;
 
 % SNAP GRID TO CRITICAL DIMENSIONS
 ny = ceil(a/dy);
 dy = a/ny;
 dx = dy;
+
+% dx = 0.007635742857143;
+% dy = 0.007727799558610;
+% dx = 0.013959789473648;
+% dy = 0.013937638489635;
 
 % GRID SIZE
 Nx = NPML(1) + ceil(Sx/dx) + NPML(2);
@@ -53,6 +76,7 @@ Sx = Nx*dx;
 Ny = NPML(3) + ceil(Sy/dy) + NPML(4);
 Sy = Ny*dy;
 % Ny = Nx;
+
 
 % 2X GRID
 Nx2 = 2*Nx;     dx2 = dx/2;
@@ -70,15 +94,17 @@ ya2 = [0:Ny2-1]*dy2;
 
 % INITIALIZE MATERIALS
 UR2 = ones(Nx2,Ny2);
-ER2 = nclad^2 * ones(Nx2,Ny2);
+ER2 = nclad1^2 * ones(Nx2,Ny2);
 
 % CREATE SLAB
 ny  = round(a/dy2);
 ny1 = 1 + floor((Ny2 - ny)/2);
 ny2 = ny1 + ny - 1;
 nx1 = 1;
-nx2 = round((PER+5)*lamd/dx2);
+nx2 = round((PER+5)*L/dx2);
 ER2(nx1:nx2,ny1:ny2) = nslab^2;
+ER2(nx2+1:end,ny1:ny2) = nslab^2;
+% ER2(:,ny2+1:end) = nclad2^2;
 
 % CREATE GRATING
 nd1 = ny1;
@@ -86,27 +112,38 @@ nd = round(d/dy2);
 nd2 = nd1 + nd;
 nd4 = ny2;
 nd3 = nd4 - nd;
+    nx1 = round(5*L/dx2) + round(ff*L/dx2);
+ER2(1:nx1-1,nd1:nd2) = 1;
+ER2(nx2+1:end,nd1:nd2) = 1;
+
 
 % Chirping function
-y =@(x) x;
+yff =@(x) x;
+y   =@(x) x;
 
 for n = 1:PER
-    nx1 = round((5+n)*lamd/dx2);
-    nx2 = nx1 + round(ff*lamd/dx2);
-    ER2(nx1:nx2,nd1:nd2-round(d*y((PER-n)/PER)/dx2)) = 1;
-%     ER2(nx1:nx2,nd3:nd4) = 1;
+    nx1 = round((5+n)*L/dx2);
+%     nx2 = nx1 + round((yff(n)/PER)*ff*lamd/dx2);
+    nx2 = nx1 + round(ff*L/dx2);
+%     ER2(nx1:nx2,nd1:nd2-round(d*y((PER-n)/PER)/dx2)) = 1;
+    ER2(nx1:nx2,nd1:nd2) = 1;
 end
 
 % SHOW ER2
 figure('color','w');
-imagesc(xa2./lamd,ya2./lamd,ER2');
-xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
+imagesc(xa2./micrometers,ya2./micrometers,ER2');
+xlabel('x (\mum)'); ylabel('y (\mum)');
 colorbar;
 
+figure('color','w');
+lam0 = linspace(lam01,lam02,Nf);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% INCOPORATE PML
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+for n = 1:Nf
+clc;
+disp(['Iteration ' num2str(n) ' out of ' num2str(Nf)]);
+disp(['Wavelength = ' num2str(lam0(n)) ' micrometers']);
 % CALCULATE PML PARAMETERS
 [sx,sy] = calcpml2d([Nx2 Ny2],2*NPML);
 
@@ -132,6 +169,7 @@ URzz = URzz(2:2:Nx2,2:2:Ny2);
 %% CALCULATE SOURCE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 % EXTRACT 1D CROSS SECTION
 nxs  = NPML(1) + 2;
 ny1  = NPML(3) + 1;
@@ -146,7 +184,7 @@ urxx = diag(sparse(urxx));
 uryy = diag(sparse(uryy));
 
 % BUILD DERIVATE MATRICES
-k0 = 2*pi/lam0;
+k0 = 2*pi/lam0(n);
 ny = ny2 - ny1 + 1;
 [DEX,DEY,DHX,DHY] = yeeder([1 ny],k0*[dx dy],[0 0 0 0]);
 
@@ -198,8 +236,21 @@ b = (Q*A - A*Q)*fsrc(:);
 f = A\b;
 f = reshape(f,Nx,Ny);
 
-figure('color','w');
 imagesc(xa./lamd,ya./lamd,real(f)');
 xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
-% axis equal tight;
+axis equal tight;
 colorbar;
+caxis([-1 1]*0.1)
+drawnow;
+fields(:,:,n) = f;
+end
+
+for a = 1:Nf
+    imagesc(xa./lamd,ya./lamd,real(fields(:,:,a))');
+xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
+axis equal tight;
+colorbar;
+caxis([-1 1]*0.1)
+drawnow;
+pause(0.1);
+end

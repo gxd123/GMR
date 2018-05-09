@@ -30,7 +30,7 @@ tot_trn = tot_ref;
 tot_con = tot_ref;
 
 % FIGURE SETTINGS 
-fig = 0;        % 0 for no figures, 1 for figure animation
+fig = 1;        % 0 for no figures, 1 for figure animation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DEFINE SIMULATION PARAMETERS
@@ -48,12 +48,12 @@ lam0 = linspace(lam01,lam02,Nf);
 lamd = 1.55 * micrometers;      % Design wavelength
 fd   = c0/lamd;                 % Design frequency
 ur   = 1.0;                     % Grating permeability
-er   = 2.0;                     % Grating permittivity
+er   = 10.0;                     % Grating permittivity
 nr   = sqrt(ur*er);             % Substrate refractive index 
-w    = 0.5000*lamd;             % Tooth width
-d    = 0.1500*lamd;             % Grating depth
-t    = lamd/(2*nr);             % Substrate thickness
-ff   = 0.5;                     % Fill fraction
+L    = 0.83254*lamd;             % Grating period (DO NOT CHANGE)
+t    = 0.1583*lamd;             % Substrate thickness
+d    = 0.0840*lamd;             % Grating depth
+ff   = 0.5;                     % Fill fraction  (DO NOT CHANGE)
 
 % EXTERNAL MATERIALS
 ur1 = 1.0;                    % Reflection region permeability
@@ -62,14 +62,15 @@ ur2 = 1.0;                    % Transmission region permeability
 er2 = 1.0;                    % Transmission region permittivity
 
 % GRID PARAMETERS
-NRES = 70;                    % Grid resolution
+NRES = 60;                    % Grid resolution
 BUFZ = 2*lam02 * [1 1];       % Spacer region above and below grating
 DEV.NPML = [20 20];           % Size of PML at top and bottom of grid
 
-Lr = linspace(0.75*lamd,0.90*lamd,Nf);
-for n = 1:Nf
-    L    = Lr(n);             % Grating period
+figure('color','w');
 
+Lf = linspace(0.01*lamd,lamd,Nf);
+for n = 1:Nf
+    L = Lf(n);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% CALCULATE OPTIMIZED GRID
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -83,12 +84,15 @@ lam_min = min([lam01 lam02])/max([ndev nref ntrn]);
 dlam = lam_min/NRES; 
 
 % Consider mechanical parameters
-dmin = w;            % x2 is the smallest defined distance
+dmin = ff*L;   % Fill fraction is
 dd = dmin/2;   % Delta for distance
 
 % Choose the highest resolution
 dx = dlam;
 dy = dx;
+
+% dx =    0.055172006602080
+% dy = dx;
 
 % Snap grid to critical dimension (in this case L and d+t)
 Nx = 2*ceil(L/dx/2) + 1;      % First guess at grid spacing (odd for periodic)
@@ -131,14 +135,16 @@ UR2(:,:) = ur;
 
 % Fill in the permittivity regions
 ER2(:,nt1:nt2) = er;
+ER2(:,1:nt1-1) = er2;
 ER2(nx1:nx2,nd1:nd2) = 1;
 
 
 DEV.UR2 = fliplr(UR2);
 DEV.ER2 = fliplr(ER2);
 
+
 if fig
-    subplot(121);
+    subplot(2,2,1);
 end
 imagesc(xa2,ya2,DEV.ER2');
 title('\epsilon_r');
@@ -149,7 +155,6 @@ colorbar;
 %% IMPLEMENT FDFD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     tic;
-    SRC.lam0 = lamd;         %angle of incidence
     DAT = fdfd2d(DEV,SRC);
     tot_ref(n) = DAT.REF;
     tot_trn(n) = DAT.TRN;
@@ -161,39 +166,27 @@ colorbar;
     disp(['Estimated Time: ' num2str(mint) ' minutes '...
             num2str(sec) ' seconds']);
     disp([num2str(n) ' out of ' num2str(Nf) ' Iterations']);
-%     figure(1);
-%     plot(theta(1:n)./degrees,100.*tot_ref(1:n),'r','linewidth',2);
-%     hold on;
-%     plot(theta(1:n)./degrees,100.*tot_trn(1:n),'b','linewidth',2);
-%     plot(theta(1:n)./degrees,100.*tot_con(1:n),'g','linewidth',2);
-%     hold off;
-%     title('Device Behavior');
-%     xlabel('Angle of Incidence (degrees)'); ylabel('Power');
-%     xlim([theta(1) theta(end)]./degrees); ylim([0 102]);
-%     drawnow;
-    
-%     figure(1);
-%     subplot(131);
-%     imagesc(dx2.*[-floor(Nx2/2),floor(Nx2/2)],dy.*[0,Ny-1],DEV.UR2'); 
-%     title('\mu_{r}');
-%     xlabel('x (cm)'); ylabel('y (cm)'); caxis([1 10]);
-%     colorbar;
-%     axis equal tight;
-% 
-%     subplot(132);
-%     imagesc(dx2.*[-floor(Nx2/2),floor(Nx2/2)],dy.*[0,Ny-1],DEV.ER2'); 
-%     title('\epsilon_{r}');
-%     xlabel('x (cm)'); ylabel('y (cm)'); caxis([1 10]);
-%     colorbar;
-%     axis equal tight;
+
     if fig
-        subplot(122);
+        subplot(2,2,2);
         imagesc(dx.*[0,Nx-1],dy.*[0,Ny-1],real(DAT.F)'); 
         title([SRC.MODE ' Mode @ ' num2str(SRC.lam0) ' \mum']);
         shading interp;
         xlabel('x (\mum)'); ylabel('y (\mum)');
         colorbar;
     %     axis equal tight;
+
+        subplot(2,2,3:4);
+        plot(Lf(1:n)./micrometers,100.*tot_ref(1:n),'r','linewidth',2);
+        hold on;
+        plot(Lf(1:n)./micrometers,100.*tot_trn(1:n),'b','linewidth',2);
+        plot(Lf(1:n)./micrometers,100.*tot_con(1:n),'--k','linewidth',2);
+        hold off;
+        title([SRC.MODE ' Mode Period Sweep']);
+        xlabel('Period Length (\mum)'); ylabel('Power (%)');
+        legend('Reflectance','Transmittance','Conservation');
+        xlim([Lf(1) Lf(end)]./micrometers); ylim([0 102]);
+
         drawnow;
     end
 end
@@ -206,7 +199,7 @@ disp(['Source Frequency = ' num2str(f0(end)./gigahertz) ' GHz']);
 disp(['Angle of Incidence = ' num2str(SRC.theta./degrees) ' degrees']);
 disp(['Electromagnetic Mode = ' SRC.MODE]);
 disp(['Device Design Frequency = ' num2str(fd./gigahertz) ' GHz']);
-disp(['w = ' num2str(w./micrometers) ' mm']);
+disp(['ff = ' num2str(ff*100) ' %']);
 disp(['L = ' num2str(L./micrometers) ' mm']);
 disp(['d = ' num2str(d./micrometers) ' mm']);
 disp(['t = ' num2str(t./micrometers) ' mm']);
@@ -240,16 +233,15 @@ disp(['TRN = ' num2str(100*DAT.TRN) '%']);
 disp(['CON = ' num2str(100*DAT.CON) '%']);
 
 figure('color','white');
-plot(Lr./lamd,100.*tot_ref,'r','linewidth',2);
+plot(Lf./micrometers,100.*tot_ref,'r','linewidth',2);
 hold on;
-plot(Lr./lamd,100.*tot_trn,'b','linewidth',2);
-plot(Lr./lamd,100.*tot_con,'--k','linewidth',2);
+plot(Lf./micrometers,100.*tot_trn,'b','linewidth',2);
+plot(Lf./micrometers,100.*tot_con,'--k','linewidth',2);
 hold off;
 title([SRC.MODE ' Mode Wavelength Sweep']);
-xlabel('Wavelengths (\lambda)'); ylabel('Power (%)');
+xlabel('Wavelength \lambda (\mum)'); ylabel('Power (%)');
 legend('Reflectance','Transmittance','Conservation');
-% xlim([lam0(1) lam0(end)]./micrometers); 
-ylim([0 102]);
+xlim([Lf(1) Lf(end)]./micrometers); ylim([0 102]);
 
 
 
