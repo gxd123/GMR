@@ -21,15 +21,15 @@ tot_con = tot_ref;
 
 % SOURCE WAVELENGTH
 lam0 = 1.55 * micrometers;
-lam01 = 1.2 * micrometers;
-lam02 = 1.9 * micrometers;
+lam01 = 1.4 * micrometers;
+lam02 = 1.7 * micrometers;
 lam0 = linspace(lam01,lam02,Nf);
 
 % SLAB WAVEGUIDE PARAMETERS
 lamd = 1.55 * micrometers;
 nslab  =  sqrt(10);
 nclad1 =  1.0;
-nclad2 =  1.0;
+nclad2 =  sqrt(5.5);
 a     = lamd/(2*nslab);
 a     = 0.1583*lamd;
 L    = 0.4555*lamd;             % Grating period (DO NOT CHANGE)
@@ -42,13 +42,13 @@ ff   = 0.6;                     % Fill fraction  (DO NOT CHANGE)
 % % t    = lamd/(2*nr);             % Substrate thickness
 % ff   = 1-0.934096;                     % Fill fraction  (DO NOT CHANGE)
 
-PER  = 10;                      % Number of periods
+PER  = 30;                      % Number of periods
 Sper = PER*L;
 
 % GRID PARAMETERS
 Sx   = (Sper + 10*L);
 Sy   = 4*lamd;
-NRES = 60;
+NRES = 20;
 NPML = [20 20 20 20];
 nmax = max([nslab nclad1 nclad2]);
 
@@ -103,8 +103,8 @@ ny2 = ny1 + ny - 1;
 nx1 = 1;
 nx2 = round((PER+5)*L/dx2);
 ER2(nx1:nx2,ny1:ny2) = nslab^2;
-ER2(nx2+1:end,ny1:ny2) = nslab^2;
-% ER2(:,ny2+1:end) = nclad2^2;
+% ER2(nx2+1:end,ny1:ny2) = nslab^2;
+ER2(:,ny2+1:end) = nclad2^2;
 
 % CREATE GRATING
 nd1 = ny1;
@@ -119,13 +119,14 @@ ER2(nx2+1:end,nd1:nd2) = 1;
 
 % Chirping function
 yff =@(x) x;
-y   =@(x) x;
+y   =@(x) exp(x);
 
 for n = 1:PER
     nx1 = round((5+n)*L/dx2);
 %     nx2 = nx1 + round((yff(n)/PER)*ff*lamd/dx2);
     nx2 = nx1 + round(ff*L/dx2);
-%     ER2(nx1:nx2,nd1:nd2-round(d*y((PER-n)/PER)/dx2)) = 1;
+    nx0 = nx1 - round((1-ff)*L/dx2);
+    ER2(nx0:nx1-1,nd1:nd2-round(d*y(n/PER)/dx2)) = 1;
     ER2(nx1:nx2,nd1:nd2) = 1;
 end
 
