@@ -50,7 +50,7 @@ fd   = c0/lamd;                 % Design frequency
 ur   = 1.0;                     % Grating permeability
 er   = 10.0;                     % Grating permittivity
 nr   = sqrt(ur*er);             % Substrate refractive index 
-L    = 0.4555*lamd;             % Grating period (DO NOT CHANGE)
+L    = 0.4139*lamd;             % Grating period (DO NOT CHANGE)
 t    = 0.1583*lamd;             % Substrate thickness
 d    = 0.5000*t;             % Grating depth
 ff   = 0.6;                     % Fill fraction  (DO NOT CHANGE)
@@ -59,7 +59,7 @@ ff   = 0.6;                     % Fill fraction  (DO NOT CHANGE)
 ur1 = 1.0;                    % Reflection region permeability
 er1 = 1.0;                    % Reflection region permittivity
 ur2 = 1.0;                    % Transmission region permeability
-er2 = 1.0;                    % Transmission region permittivity
+er2 = 5.0;                    % Transmission region permittivity
 
 % GRID PARAMETERS
 NRES = 60;                    % Grid resolution
@@ -146,7 +146,7 @@ imagesc(xa2,ya2,DEV.ER2');
 title('\epsilon_r');
 xlabel('x (\mum)'); ylabel('y (\mum)');
 colorbar;
-
+return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

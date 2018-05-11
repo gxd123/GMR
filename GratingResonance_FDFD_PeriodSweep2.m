@@ -59,7 +59,7 @@ ff   = 0.5;                     % Fill fraction  (DO NOT CHANGE)
 ur1 = 1.0;                    % Reflection region permeability
 er1 = 1.0;                    % Reflection region permittivity
 ur2 = 1.0;                    % Transmission region permeability
-er2 = 1.0;                    % Transmission region permittivity
+er2 = 5.0;                    % Transmission region permittivity
 
 % GRID PARAMETERS
 NRES = 60;                    % Grid resolution
