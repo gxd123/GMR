@@ -24,7 +24,7 @@ gigahertz = 1e9 * hertz;
 c0 = 299792458 * meters/seconds;
 
 % POINTS FOR SWEEP 
-Nf = 501;
+Nf = 201;
 tot_ref = zeros(1,Nf);
 tot_trn = tot_ref;
 tot_con = tot_ref;
@@ -40,29 +40,29 @@ SRC.lam0 = 1.55 * micrometers;    % Free space wavelength
 SRC.theta = 0 * degrees;
 SRC.MODE = 'E';                   % EM mode
 f0 = c0/SRC.lam0;
-lam01 = 1.4 * micrometers;
-lam02 = 1.7 * micrometers;
+lam01 = 1.2 * micrometers;
+lam02 = 1.9 * micrometers;
 lam0 = linspace(lam01,lam02,Nf);
 
 % GRATING PARAMETERS
 lamd = 1.55 * micrometers;      % Design wavelength
 fd   = c0/lamd;                 % Design frequency
 ur   = 1.0;                     % Grating permeability
-er   = 2.0;                     % Grating permittivity
+er   = 10.0;                     % Grating permittivity
 nr   = sqrt(ur*er);             % Substrate refractive index 
-L    = 0.83254*lamd;             % Grating period (DO NOT CHANGE)
-d    = 0.192547096774194*lamd;             % Grating depth
-t    = lamd/(2*nr);             % Substrate thickness
-ff   = 0.934096;                     % Fill fraction  (DO NOT CHANGE)
+L    = 0.4139*lamd;             % Grating period (DO NOT CHANGE)
+t    = 0.1583*lamd;             % Substrate thickness
+d    = 0.5000*t;             % Grating depth
+ff   = 0.6;                     % Fill fraction  (DO NOT CHANGE)
 
 % EXTERNAL MATERIALS
 ur1 = 1.0;                    % Reflection region permeability
 er1 = 1.0;                    % Reflection region permittivity
 ur2 = 1.0;                    % Transmission region permeability
-er2 = 1.0;                    % Transmission region permittivity
+er2 = 5.0;                    % Transmission region permittivity
 
 % GRID PARAMETERS
-NRES = 100;                    % Grid resolution
+NRES = 60;                    % Grid resolution
 BUFZ = 2*lam02 * [1 1];       % Spacer region above and below grating
 DEV.NPML = [20 20];           % Size of PML at top and bottom of grid
 
@@ -130,6 +130,7 @@ UR2(:,:) = ur;
 
 % Fill in the permittivity regions
 ER2(:,nt1:nt2) = er;
+ER2(:,1:nt1-1) = er2;
 ER2(nx1:nx2,nd1:nd2) = 1;
 
 
@@ -139,13 +140,13 @@ DEV.ER2 = fliplr(ER2);
 
 figure('color','w');
 if fig
-    subplot(121);
+    subplot(2,2,1);
 end
 imagesc(xa2,ya2,DEV.ER2');
 title('\epsilon_r');
 xlabel('x (\mum)'); ylabel('y (\mum)');
 colorbar;
-
+return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% IMPLEMENT FDFD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -165,13 +166,24 @@ for n = 1:Nf
     disp([num2str(n) ' out of ' num2str(Nf) ' Iterations']);
 
     if fig
-        subplot(122);
+        subplot(2,2,2);
         imagesc(dx.*[0,Nx-1],dy.*[0,Ny-1],real(DAT.F)'); 
         title([SRC.MODE ' Mode @ ' num2str(SRC.lam0) ' \mum']);
         shading interp;
         xlabel('x (\mum)'); ylabel('y (\mum)');
         colorbar;
     %     axis equal tight;
+
+        subplot(2,2,3:4)
+        plot(lam0(1:n)./micrometers,100.*tot_ref(1:n),'r','linewidth',2);
+        hold on;
+        plot(lam0(1:n)./micrometers,100.*tot_trn(1:n),'b','linewidth',2);
+        plot(lam0(1:n)./micrometers,100.*tot_con(1:n),'--k','linewidth',2);
+        hold off;
+        title([SRC.MODE ' Mode Wavelength Sweep']);
+        xlabel('Wavelength \lambda (\mum)'); ylabel('Power (%)');
+        legend('Reflectance','Transmittance','Conservation');
+        xlim([lam0(1) lam0(end)]./micrometers); ylim([0 102]);
         drawnow;
     end
 end
