@@ -4,13 +4,12 @@
 close all;
 clc;
 clear all;
-set(0,'DefaultFigureWindowStyle','docked');
 
 % UNITS
 micrometers = 1;
 nanometers  = 1e-3 * micrometers;
 
-Nf = 11;
+Nf = 101;
 tot_ref = zeros(1,Nf);
 tot_trn = tot_ref;
 tot_con = tot_ref;
@@ -18,6 +17,10 @@ tot_con = tot_ref;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DASHBOARD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% DEBUG FLAGS
+VIS = 0;        % CHOOSE TO VISUALIZE OR NOT
+MOV = 1;        % CHOOSE TO MAKE MOVIE OR NOT
 
 % SOURCE WAVELENGTH
 lam0 = 1.55 * micrometers;
@@ -133,13 +136,13 @@ y   =@(x) exp(x-1);
 
 for n = 1:PER
     nx1 = round(((BUF/2)+n)*L/dx2);
-%     nx2 = nx1 + round((yff(n)/PER)*ff*lamd/dx2);
+    %     nx2 = nx1 + round((yff(n)/PER)*ff*lamd/dx2);
     nx2 = nx1 + round(ff*L/dx2);
     nx0 = nx1 - round((1-ff)*L/dx2);
-%     ER2(nx0:nx1-1,nd1:nd2-round(d*y(n/PER)/dx2)) = 1;
+    %     ER2(nx0:nx1-1,nd1:nd2-round(d*y(n/PER)/dx2)) = 1;
     Ls = (nx2-nx1+1)*dx2;
     nd2 = ny1-1;
-
+    
     da = d*y(n/PER);
     for m = 0:nx2-nx1+1
         Sn = m*dx2;
@@ -147,7 +150,7 @@ for n = 1:PER
         ER2(nx1+m,nd1:nd2) = nslab^2;
     end
     
-%     ER2(nx0:nx1,nd1:nd2) = nslab^2;
+    %     ER2(nx0:nx1,nd1:nd2) = nslab^2;
 end
 
 % SHOW ER2
@@ -162,192 +165,186 @@ lam0 = linspace(lam01,lam02,Nf);
 %% INCOPORATE PML
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for n = 1:Nf
-clc;
-disp(['Iteration ' num2str(n) ' out of ' num2str(Nf)]);
-disp(['Wavelength = ' num2str(lam0(n)) ' micrometers']);
-% CALCULATE PML PARAMETERS
-[sx,sy] = calcpml2d([Nx2 Ny2],2*NPML);
-
-% INCORPORATE PML
-ERxx = ER2 ./ sx .* sy;
-ERyy = ER2 .* sx ./ sy;
-ERzz = ER2 .* sx .* sy;
-
-URxx = UR2 ./ sx .* sy;
-URyy = UR2 .* sx ./ sy;
-URzz = UR2 .* sx .* sy;
-
-% PARSE TO 1X GRID
-ERxx = ERxx(2:2:Nx2,1:2:Ny2);
-ERyy = ERyy(1:2:Nx2,2:2:Ny2);
-ERzz = ERzz(1:2:Nx2,1:2:Ny2);
-
-URxx = URxx(1:2:Nx2,2:2:Ny2);
-URyy = URyy(2:2:Nx2,1:2:Ny2);
-URzz = URzz(2:2:Nx2,2:2:Ny2);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% CALCULATE SOURCE
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% EXTRACT 1D CROSS SECTION
-nxs  = NPML(1) + 2;
-ny1  = NPML(3) + 1;
-ny2  = Ny - NPML(4);
-erzz = ERzz(nxs,ny1:ny2);
-urxx = URxx(nxs,ny1:ny2);
-uryy = URyy(nxs,ny1:ny2);
-
-% DIAGONALIZE MATERIALS
-erzz = diag(sparse(erzz));
-urxx = diag(sparse(urxx));
-uryy = diag(sparse(uryy));
-
-% BUILD DERIVATE MATRICES
-k0 = 2*pi/lam0(n);
-ny = ny2 - ny1 + 1;
-[DEX,DEY,DHX,DHY] = yeeder([1 ny],k0*[dx dy],[0 0 0 0]);
-
-% BUILD EIGEN-VALUE PROBLEM
-A = - (DHY/urxx*DEY + erzz);
-B = inv(uryy);
-
-% SOLVE EIGEN-VALUE PROBLEM
-[V,D] = eig(full(A),full(B));
-D = diag(D);
-
-% IDENTIFY FUNDAMENTAL MODE
-Ez0 = V(:,1);
-neff = sqrt(-D(1));
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% FDFD ANALYSIS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% BUILD DERIVATE MATRICES
-[DEX,DEY,DHX,DHY] = yeeder([Nx Ny],k0*[dx dy],[0 0 0 0]);
-
-% DIAGONALIZE MATERIALS
-ERxx = diag(sparse(ERxx(:)));
-ERyy = diag(sparse(ERyy(:)));
-ERzz = diag(sparse(ERzz(:)));
-URxx = diag(sparse(URxx(:)));
-URyy = diag(sparse(URyy(:)));
-URzz = diag(sparse(URzz(:)));
-
-% BUILD WAVE MATRIX
-A = DHX/URyy*DEX + DHY/URxx*DEY + ERzz;
-
-% SOURCE FIELD
-fsrc = zeros(Nx,Ny);
-for nx = 1 : Nx
-    fsrc(nx,ny1:ny2) = Ez0*exp(1i*k0*neff*nx*dx); 
-end
-
-% Q
-Q = zeros(Nx,Ny);
-Q(1:nxs,:) = 1;
-Q = diag(sparse(Q(:)));
-
-% SOURCE VECTOR
-b = (Q*A - A*Q)*fsrc(:);
-
-% CALCULATE FIELD
-f = A\b;
-f = reshape(f,Nx,Ny);
-% fd = f(1+NPML(1):Nx-NPML(2),1+NPML(3):Ny-NPML(4));
-imagesc(xa./lamd,ya./lamd,real(f)');
-xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
-axis equal tight;
-colorbar;
-caxis([-1 1]*0.1)
-drawnow;
-fields(:,:,n) = f(1+NPML(1):Nx-NPML(2),1+NPML(3):Ny-NPML(4));
+    clc;
+    disp(['Iteration ' num2str(n) ' out of ' num2str(Nf)]);
+    disp(['Wavelength = ' num2str(lam0(n)) ' micrometers']);
+    % CALCULATE PML PARAMETERS
+    [sx,sy] = calcpml2d([Nx2 Ny2],2*NPML);
+    
+    % INCORPORATE PML
+    ERxx = ER2 ./ sx .* sy;
+    ERyy = ER2 .* sx ./ sy;
+    ERzz = ER2 .* sx .* sy;
+    
+    URxx = UR2 ./ sx .* sy;
+    URyy = UR2 .* sx ./ sy;
+    URzz = UR2 .* sx .* sy;
+    
+    % PARSE TO 1X GRID
+    ERxx = ERxx(2:2:Nx2,1:2:Ny2);
+    ERyy = ERyy(1:2:Nx2,2:2:Ny2);
+    ERzz = ERzz(1:2:Nx2,1:2:Ny2);
+    
+    URxx = URxx(1:2:Nx2,2:2:Ny2);
+    URyy = URyy(2:2:Nx2,1:2:Ny2);
+    URzz = URzz(2:2:Nx2,2:2:Ny2);
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% CALCULATE SOURCE
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    
+    % EXTRACT 1D CROSS SECTION
+    nxs  = NPML(1) + 2;
+    ny1  = NPML(3) + 1;
+    ny2  = Ny - NPML(4);
+    erzz = ERzz(nxs,ny1:ny2);
+    urxx = URxx(nxs,ny1:ny2);
+    uryy = URyy(nxs,ny1:ny2);
+    
+    % DIAGONALIZE MATERIALS
+    erzz = diag(sparse(erzz));
+    urxx = diag(sparse(urxx));
+    uryy = diag(sparse(uryy));
+    
+    % BUILD DERIVATE MATRICES
+    k0 = 2*pi/lam0(n);
+    ny = ny2 - ny1 + 1;
+    [DEX,DEY,DHX,DHY] = yeeder([1 ny],k0*[dx dy],[0 0 0 0]);
+    
+    % BUILD EIGEN-VALUE PROBLEM
+    A = - (DHY/urxx*DEY + erzz);
+    B = inv(uryy);
+    
+    % SOLVE EIGEN-VALUE PROBLEM
+    [V,D] = eig(full(A),full(B));
+    D = diag(D);
+    
+    % IDENTIFY FUNDAMENTAL MODE
+    Ez0 = V(:,1);
+    neff = sqrt(-D(1));
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% FDFD ANALYSIS
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    % BUILD DERIVATE MATRICES
+    [DEX,DEY,DHX,DHY] = yeeder([Nx Ny],k0*[dx dy],[0 0 0 0]);
+    
+    % DIAGONALIZE MATERIALS
+    ERxx = diag(sparse(ERxx(:)));
+    ERyy = diag(sparse(ERyy(:)));
+    ERzz = diag(sparse(ERzz(:)));
+    URxx = diag(sparse(URxx(:)));
+    URyy = diag(sparse(URyy(:)));
+    URzz = diag(sparse(URzz(:)));
+    
+    % BUILD WAVE MATRIX
+    A = DHX/URyy*DEX + DHY/URxx*DEY + ERzz;
+    
+    % SOURCE FIELD
+    fsrc = zeros(Nx,Ny);
+    for nx = 1 : Nx
+        fsrc(nx,ny1:ny2) = Ez0*exp(1i*k0*neff*nx*dx);
+    end
+    
+    % Q
+    Q = zeros(Nx,Ny);
+    Q(1:nxs,:) = 1;
+    Q = diag(sparse(Q(:)));
+    
+    % SOURCE VECTOR
+    b = (Q*A - A*Q)*fsrc(:);
+    
+    % CALCULATE FIELD
+    f = A\b;
+    f = reshape(f,Nx,Ny);
+    % fd = f(1+NPML(1):Nx-NPML(2),1+NPML(3):Ny-NPML(4));
+    if VIS == 1
+        imagesc(xa./lamd,ya./lamd,real(f)');
+        xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
+        axis equal tight;
+        colorbar;
+        caxis([-1 1]*0.1)
+        drawnow;
+    end
+    fields(:,:,n) = f(1+NPML(1):Nx-NPML(2),1+NPML(3):Ny-NPML(4));
 end
 
 % cm = bipolar(4, 'neutral', 'interp');
-for a = 1:Nf
-    imagesc(xa./lamd,ya./lamd,real(fields(:,:,a))');
-    colormap(bipolar(256, 0.1));
-xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
-axis equal tight;
-colorbar;
-caxis([-1 1]*0.02)
-drawnow;
-pause(0.1);
+if VIS == 1
+    for a = 1:Nf
+        imagesc(xa./lamd,ya./lamd,real(fields(:,:,a))');
+        colormap(bipolar(256, 0.1));
+        xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
+        axis equal tight;
+        colorbar;
+        caxis([-1 1]*0.02)
+        drawnow;
+        pause(0.1);
+    end
 end
 
 prop = 2000;
 F = fields;
 figure('color','w');
 
-
 for a=1:Nf
     
-% CALCULATE WAVE VECTOR COMPONENTS
-Nx3 = Nx - NPML(1) - NPML(2);
-k0 = 2*pi / lam0(a);
-kinc = k0*sqrt(1.0) * [sin(0); cos(0)];    % INCIDENT WAVE VECTOR
-m = [-floor(Nx3/2):floor(Nx3/2)]';            % DIFFRACTION ORDERS POSSIBLE
-kx = kinc(1) - m*2*pi/(Nx3*dx);
-ky = sqrt((k0*sqrt(1.0))^2 - kx.^2);
-
-Fstrip = F(:,1,a);    
-Fstrip(1) = 0;  Fstrip(end) = 0;
-F2 = zeros(Nx3,prop);
-F2(:,1) = Fstrip;
-
-% PROPAGATE FIELDS
-for p = 1:prop
-    F_FFT = F2(:,p);
-    F_FFT = fftshift(fft(F_FFT)) .* exp(1i*ky*dy);  
-    F2(:,p+1) = ifft(ifftshift(F_FFT));
-    F2(1,p+1) = 0;
-    F2(end,p+1) = 0;
-end
-
-fullfields(:,:,a) = [fliplr(F2) F(:,:,a)];
-imagesc(real(fullfields(:,:,a))');
-    colormap(bipolar(256, 0.1));
-xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
-axis equal tight;
-colorbar;
-caxis([-1 1]*0.03)
-drawnow;
-pause(0.1);
+    % CALCULATE WAVE VECTOR COMPONENTS
+    Nx3 = Nx - NPML(1) - NPML(2);
+    k0 = 2*pi / lam0(a);
+    kinc = k0*sqrt(1.0) * [sin(0); cos(0)];    % INCIDENT WAVE VECTOR
+    m = [-floor(Nx3/2):floor(Nx3/2)]';            % DIFFRACTION ORDERS POSSIBLE
+    kx = kinc(1) - m*2*pi/(Nx3*dx);
+    ky = sqrt((k0*sqrt(1.0))^2 - kx.^2);
+    
+    Fstrip = F(:,1,a);
+    Fstrip(1) = 0;  Fstrip(end) = 0;
+    F2 = zeros(Nx3,prop);
+    F2(:,1) = Fstrip;
+    
+    % PROPAGATE FIELDS
+    for p = 1:prop
+        F_FFT = F2(:,p);
+        F_FFT = fftshift(fft(F_FFT)) .* exp(1i*ky*dy);
+        F2(:,p+1) = ifft(ifftshift(F_FFT));
+        F2(1,p+1) = 0;
+        F2(end,p+1) = 0;
+    end
+    
+    fullfields(:,:,a) = [fliplr(F2) F(:,:,a)];
+    if VIS == 1
+        imagesc(real(fullfields(:,:,a))');
+        colormap(bipolar(256, 0.1));
+        xlabel('x (wavelengths \lambda_0)'); ylabel('y (wavelengths \lambda_0)');
+        axis equal tight;
+        colorbar;
+        caxis([-1 1]*0.03)
+        drawnow;
+        pause(0.1);
+    end
 end
 
 % Make movie
-movie_name = 'Beam_Steering.mp4';
-vid = VideoWriter(movie_name,'MPEG-4');
-open(vid);
-
-for a = 1:length(fullfields(1,1,:))
-imagesc(real(fullfields(:,:,a))');
-    colormap(bipolar(256, 0.1));
-set(gca,'xticklabel',{},'yticklabel',{});
-axis equal tight;
-caxis([-1 1]*0.03)
-drawnow;
-
-frame = getframe(gcf);
-    writeVideo(vid,frame);
+if MOV == 1
+    movie_name = 'Beam_Steering.mp4';
+    vid = VideoWriter(movie_name,'MPEG-4');
+    open(vid);
     
-% pause(0.1);
+    for a = 1:length(fullfields(1,1,:))
+        imagesc(real(fullfields(:,:,a))');
+        colormap(bipolar(256, 0.1));
+        set(gca,'xticklabel',{},'yticklabel',{});
+        axis equal tight;
+        caxis([-1 1]*0.03)
+        drawnow;
+        set(gcf,'units','pixels','position',[0 0 720 480]);
+        frame = getframe(gcf);
+        writeVideo(vid,frame);
+        
+    end
+    
+    % Close movie
+    close(vid);
 end
-
-% Close movie
-close(vid);
-
-
-
-
-
-
-
-
-
-
-
-
