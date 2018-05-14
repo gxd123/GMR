@@ -337,8 +337,7 @@ for a=1:Nf
 end
 
 % Make movie
-close all;
-figure('Color','w');
+clf
 if MOV == 1
     movie_name = 'Beam_Steering.mp4';
     vid = VideoWriter(movie_name,'MPEG-4');
@@ -350,6 +349,14 @@ if MOV == 1
         textborder(50,100,['\lambda_o = ' num2str(lam0(a)) ' \mum'],'w',...
             'k','FontSize',20);
         set(gcf,'units','pixels','position',[980 100 720 480]);
+        ax = gca;
+        outerpos = ax.OuterPosition;
+        ti = ax.TightInset;
+        left = outerpos(1) + ti(1);
+        bottom = outerpos(2) + ti(2);
+        ax_width = outerpos(3) - ti(1) - ti(3);
+        ax_height = outerpos(4) - ti(2) - ti(4);
+        ax.Position = [left bottom ax_width ax_height];
         colormap(bipolar(256, 0.1));
         set(gca,'xticklabel',{},'yticklabel',{});
         axis equal tight;
